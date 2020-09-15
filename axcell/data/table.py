@@ -9,7 +9,7 @@ from dataclasses import dataclass, field
 from typing import List
 from ..helpers.jupyter import display_html, table_to_html
 from copy import deepcopy
-
+from io import StringIO
 
 @dataclass
 class Cell:
@@ -141,6 +141,7 @@ class Table:
     def set_layout(self, layout):
         for r, row in layout.iterrows():
             for c, cell in enumerate(row):
+                print(r,c)
                 self.df.iloc[r, c].layout = cell
 
     def set_tags(self, tags):
@@ -205,6 +206,37 @@ class Table:
 
     def _save_df(self, df, filename):
         df.to_csv(filename, header=None, index=None)
+
+    def to_json(self):
+        '''
+        This will return a dictionary of table and layout as CSV strings. 
+        {
+            'table' : str, # csv format
+            'layout' : str # csv format
+            
+        }
+        '''
+        s = StringIO()
+        l = StringIO()
+        self.df.applymap(lambda x: x.raw_value).to_csv(s,index=False)
+        self.df.applymap(lambda x: x.layout).to_csv(l,index=False)
+        table_dict = dict(
+            name = self.name,
+            caption = self.caption,
+            figure_id = self.figure_id, 
+            table = s.getvalue(),
+            layout= l.getvalue()
+        )
+        return table_dict
+    
+    @classmethod
+    def from_json(cls,json_dict):
+        if 'table' not in json_dict or 'layout' not in json_dict:
+            raise Exception(f"Cannot Load Object From Such a dict. {json_dict.keys()}")
+        
+        layout_df = pd.read_csv(StringIO(json_dict['layout']))
+        table = pd.read_csv(StringIO(json_dict['table']))
+        return cls(json_dict['name'],table.applymap(str), layout_df.applymap(str),figure_id=json_dict['figure_id'])
 
     def save(self, path, table_name, layout_name):
         path = Path(path)
