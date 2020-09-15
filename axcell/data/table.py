@@ -141,7 +141,6 @@ class Table:
     def set_layout(self, layout):
         for r, row in layout.iterrows():
             for c, cell in enumerate(row):
-                print(r,c)
                 self.df.iloc[r, c].layout = cell
 
     def set_tags(self, tags):
