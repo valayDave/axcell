@@ -5,6 +5,7 @@ from axcell.helpers import LatexConverter, Unpack
 from axcell.errors import UnpackError, LatexConversionError
 from axcell.data.elastic import Paper as PaperText
 import axcell.data.extract_tables as table_extraction
+from axcell.data.paper_collection import Paper
 
 import re
 import warnings
@@ -12,6 +13,16 @@ import warnings
 arxiv_re = re.compile(r"^(?P<arxiv_id>\d{4}\.\d+(v\d+)?)(\..*)?$")
 
 
+class TablesFromHTML:
+
+    def __call__(self,arxiv_id,html):
+        doc = PaperText.from_html(html, arxiv_id)
+        print(f"extrtacted Text : {doc.title}")
+        tables = table_extraction.extract_tables(html)
+        return Paper(
+            arxiv_id,doc,tables,None
+        )
+        
 class PaperExtractor:
     def __init__(self, root):
         self.root = Path(root)
@@ -50,6 +61,7 @@ class PaperExtractor:
 
         text_path = self.root / 'papers' / subpath / 'text.json'
         doc = PaperText.from_html(html, arxiv_id)
+        print(f"extrtacted Text : {doc.title}")
         text_path.parent.mkdir(parents=True, exist_ok=True)
         text_path.write_text(doc.to_json(), 'utf-8')
 
