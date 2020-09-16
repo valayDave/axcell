@@ -18,7 +18,8 @@ class PaperExtractor:
         self.unpack = Unpack()
         self.latex = LatexConverter()
 
-    def __call__(self, source):
+
+    def __call__(self, source,with_html=None):
         source = Path(source)
 
         m = arxiv_re.match(source.name)
@@ -29,20 +30,23 @@ class PaperExtractor:
             arxiv_id = m.group('arxiv_id')
 
         subpath = source.relative_to(self.root / 'sources').parent / arxiv_id
-        unpack_path = self.root / 'unpacked_sources' / subpath
-        try:
-            self.unpack(source, unpack_path)
-        except UnpackError as e:
-            if e.args[0].startswith('The paper has been withdrawn'):
-                return 'withdrawn'
-            return 'no-tex'
-        html_path = self.root / 'htmls' / subpath / 'index.html'
-        try:
-            html = self.latex.to_html(unpack_path)
-            html_path.parent.mkdir(parents=True, exist_ok=True)
-            html_path.write_text(html, 'utf-8')
-        except LatexConversionError:
-            return 'processing-error'
+        if with_html is None:
+            unpack_path = self.root / 'unpacked_sources' / subpath
+            try:
+                self.unpack(source, unpack_path)
+            except UnpackError as e:
+                if e.args[0].startswith('The paper has been withdrawn'):
+                    return 'withdrawn'
+                return 'no-tex'
+            html_path = self.root / 'htmls' / subpath / 'index.html'
+            try:
+                html = self.latex.to_html(unpack_path)
+                html_path.parent.mkdir(parents=True, exist_ok=True)
+                html_path.write_text(html, 'utf-8')
+            except LatexConversionError:
+                return 'processing-error'
+        else:
+            html = with_html
 
         text_path = self.root / 'papers' / subpath / 'text.json'
         doc = PaperText.from_html(html, arxiv_id)
